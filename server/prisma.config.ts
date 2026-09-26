@@ -7,6 +7,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DB_URL"),
+    url: env("DB_URL") || process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/stocksense",
   },
 });
