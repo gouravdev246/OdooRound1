@@ -10,7 +10,8 @@ import Signup from './pages/Signup';
 
 // Protected Route Wrapper: Ensures user must log in first before seeing main app pages
 function ProtectedRoute({ children }) {
-  const isAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+  const token = localStorage.getItem('token');
+  const isAuth = localStorage.getItem('isAuthenticated') === 'true' || sessionStorage.getItem('isAuthenticated') === 'true' || Boolean(token);
   const location = useLocation();
 
   if (!isAuth) {

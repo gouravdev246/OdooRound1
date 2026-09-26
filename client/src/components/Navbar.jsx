@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import logo from '../assets/logo.png';
+import api from '../services/api';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const currentUser = api.getCurrentUser();
   const navigate = useNavigate();
 
   const navLinks = [
@@ -86,10 +88,38 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Right CTA Button */}
+        {/* Right CTA Button & User Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          {currentUser && (
+            <div className="hidden-mobile" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.3rem 0.75rem',
+              borderRadius: '9999px',
+              backgroundColor: 'var(--primary-light)',
+              color: 'var(--primary)',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+            }}>
+              <span>{currentUser.name || currentUser.email}</span>
+              {currentUser.role && (
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '0.1rem 0.4rem',
+                  borderRadius: '9999px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569'
+                }}>
+                  {currentUser.role.replace('_', ' ')}
+                </span>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => {
+              api.logout();
               sessionStorage.removeItem('isAuthenticated');
               navigate('/login');
             }}

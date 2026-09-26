@@ -8,6 +8,7 @@ import stockRoutes from "./modules/stock/stock.route.js";
 import deliveryRoutes from "./modules/delivery/delivery.route.js";
 import productRoutes from "./modules/product/product.routes.js";
 import ledgerRoutes from "./modules/ledger/ledger.routes.js";
+import authRoutes from "./modules/auth/auth.routes.js";
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,7 @@ app.get("/", (req, res) => {
 });
 
 // API Routes
+app.use("/api", authRoutes);
 app.use("/api", warehouseRoutes);
 app.use("/api", locationRoutes);
 app.use("/api", receiptRoutes);

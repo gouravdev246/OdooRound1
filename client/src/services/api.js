@@ -2,9 +2,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 async function fetchAPI(endpoint, options = {}) {
   try {
+    const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
@@ -24,6 +26,65 @@ async function fetchAPI(endpoint, options = {}) {
 }
 
 export const api = {
+  // --- Auth Module ---
+  async signup(data) {
+    const res = await fetchAPI('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res?.data?.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      localStorage.setItem('isAuthenticated', 'true');
+    }
+    return res;
+  },
+
+  async login(data) {
+    const res = await fetchAPI('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res?.data?.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      localStorage.setItem('isAuthenticated', 'true');
+    }
+    return res;
+  },
+
+  async getMe() {
+    return fetchAPI('/auth/me');
+  },
+
+  async forgotPassword(email) {
+    return fetchAPI('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(data) {
+    return fetchAPI('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('isAuthenticated');
+  },
+
+  getCurrentUser() {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  },
   // --- Dashboard & Metrics ---
   async getDashboardOverview() {
     try {

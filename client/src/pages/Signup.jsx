@@ -1,22 +1,44 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import api from '../services/api';
+import { AlertCircle } from 'lucide-react';
 
 export default function Signup() {
   const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Passwords do not match. Please verify your entries.');
+      setErrorMsg('Passwords do not match. Please verify your entries.');
       return;
     }
-    sessionStorage.setItem('isAuthenticated', 'true');
-    navigate('/dashboard');
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      await api.signup({
+        name: loginId.trim(),
+        email: email.trim(),
+        password,
+        role: 'WAREHOUSE_STAFF'
+      });
+      navigate('/dashboard');
+    } catch (err) {
+      setErrorMsg(err.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,12 +121,30 @@ export default function Signup() {
           Please sign up to continue
         </p>
 
-        {/* Login ID field */}
+        {errorMsg && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.65rem 0.85rem',
+            backgroundColor: 'var(--rose-light)',
+            color: 'var(--rose-main)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            textAlign: 'left'
+          }}>
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Login ID / Name field */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          marginTop: '1.75rem',
+          marginTop: errorMsg ? '1rem' : '1.75rem',
           backgroundColor: '#ffffff',
           border: '1px solid rgba(209, 213, 219, 0.8)',
           height: '3rem',
@@ -119,7 +159,7 @@ export default function Signup() {
           </svg>
           <input 
             type="text" 
-            placeholder="Login ID" 
+            placeholder="Full Name / User ID" 
             value={loginId}
             onChange={(e) => setLoginId(e.target.value)}
             style={{
@@ -154,7 +194,7 @@ export default function Signup() {
           </svg>
           <input 
             type="email" 
-            placeholder="Email id" 
+            placeholder="Email address" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{
@@ -189,7 +229,7 @@ export default function Signup() {
           </svg>
           <input 
             type="password" 
-            placeholder="Password" 
+            placeholder="Password (min 6 characters)" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{
@@ -243,37 +283,39 @@ export default function Signup() {
         {/* Submit Button */}
         <button 
           type="submit" 
+          disabled={loading}
           style={{
             marginTop: '1.5rem',
             width: '100%',
             height: '2.75rem',
             borderRadius: '9999px',
             color: '#ffffff',
-            backgroundColor: '#6366f1',
+            backgroundColor: 'var(--primary)',
             border: 'none',
             fontSize: '0.9rem',
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
             transition: 'opacity 0.2s',
-            boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)'
+            boxShadow: 'var(--shadow-indigo)'
           }}
         >
-          Sign up
+          {loading ? 'Creating account...' : 'Create Account'}
         </button>
 
         {/* Sign in link */}
         <p style={{
           color: '#6b7280',
           fontSize: '0.875rem',
-          marginTop: '0.85rem',
+          marginTop: '1rem',
           marginBottom: '2.5rem'
         }}>
           Already have an account?{' '}
           <Link 
             to="/login" 
             style={{
-              color: '#6366f1',
-              fontWeight: 500
+              color: 'var(--primary)',
+              fontWeight: 600
             }}
           >
             Sign in
