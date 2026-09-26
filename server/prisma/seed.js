@@ -10,7 +10,7 @@ async function main() {
     create: {
       email: "admin@stocksense.io",
       name: "StockSense Admin",
-      password: "password123",
+      passwordHash: "password123",
       role: "ADMIN",
     },
   });
@@ -116,8 +116,7 @@ async function main() {
       sku: "SKU-001",
       categoryId: furnitureCat.id,
       unit: "Units",
-      price: 249.99,
-      minStockAlert: 10,
+      minStock: 10,
     },
   });
 
@@ -129,8 +128,7 @@ async function main() {
       sku: "SKU-002",
       categoryId: techCat.id,
       unit: "Units",
-      price: 89.50,
-      minStockAlert: 15,
+      minStock: 15,
     },
   });
 
@@ -142,8 +140,7 @@ async function main() {
       sku: "SKU-003",
       categoryId: techCat.id,
       unit: "Pcs",
-      price: 14.99,
-      minStockAlert: 50,
+      minStock: 50,
     },
   });
 

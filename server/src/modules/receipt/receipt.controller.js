@@ -106,7 +106,7 @@ export const createReceipt = async (req, res) => {
             data: {
               email: "admin@stocksense.io",
               name: "Administrator",
-              password: "password123",
+              passwordHash: "password123",
               role: "ADMIN"
             }
           });

@@ -55,8 +55,7 @@ export const createProduct = async (req, res) => {
         sku,
         categoryId: categoryId || undefined,
         unit: unit || "Units",
-        price: price ? parseFloat(price) : 0,
-        minStockAlert: minStockAlert ? parseInt(minStockAlert, 10) : 0,
+        minStock: minStockAlert ? parseFloat(minStockAlert) : 0,
       },
     });
 
