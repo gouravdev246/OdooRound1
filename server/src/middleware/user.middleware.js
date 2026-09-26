@@ -1,1 +1,1 @@
-export { authenticateToken, requireRole, default } from "./auth.middleware.js";
+export { authenticateToken as userMiddleware, authenticateToken, requireRole, default } from "./auth.middleware.js";

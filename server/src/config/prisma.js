@@ -1,12 +1,15 @@
 import "dotenv/config";
-import pg from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import ws from "ws";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
+
+// Enable WebSocket support for Neon over port 443 (avoids port 5432 network timeouts)
+neonConfig.webSocketConstructor = ws;
 
 const connectionString = process.env.DATABASE_URL || process.env.DB_URL;
 
-const pool = new pg.Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaNeon({ connectionString });
 
 const globalForPrisma = globalThis;
 
@@ -17,3 +20,4 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export default prisma;
+

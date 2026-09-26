@@ -54,35 +54,6 @@ export const getAllReceipts = async (req, res) => {
   }
 };
 
-// GET /api/receipts/:id
-export const getReceiptById = async (req, res) => {
-  try {
-    const receipt = await prisma.receipt.findUnique({
-      where: { id: req.params.id },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        items: {
-          include: {
-            product: {
-              select: { id: true, name: true, sku: true, unit: true },
-            },
-            location: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                warehouse: { select: { id: true, name: true, code: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-
-
 // POST /api/receipts
 export const createReceipt = async (req, res) => {
   try {

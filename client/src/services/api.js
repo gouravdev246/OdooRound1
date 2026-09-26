@@ -150,9 +150,12 @@ export const api = {
         }),
       });
 
-      if (res?.data?.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+      const token = res?.data?.token || res?.token;
+      const user = res?.data?.user || res?.user;
+
+      if (token && user) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('isAuthenticated', 'true');
       }
 

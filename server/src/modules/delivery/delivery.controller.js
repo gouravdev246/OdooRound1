@@ -168,7 +168,8 @@ export const getDeliveryById = async (req, res) => {
 // POST /api/delivery (Create new delivery - Initial State: Draft or Waiting/Ready)
 export const createDelivery = async (req, res) => {
   try {
-    const { customerName, deliveredAt, notes, items } = req.body;
+    const { customerName, deliveredAt, scheduledDate, notes, items } = req.body;
+    const targetDeliveryDate = deliveredAt || scheduledDate;
 
     // Use logged in user if available
     let createdById = req.user?.id || req.body.createdById;
@@ -212,7 +213,7 @@ export const createDelivery = async (req, res) => {
       data: {
         deliveryNumber,
         customerName: customerName?.trim() || null,
-        deliveredAt: deliveredAt ? new Date(deliveredAt) : null,
+        deliveredAt: targetDeliveryDate ? new Date(targetDeliveryDate) : null,
         notes: notes?.trim() || null,
         status: initialStatus,
         createdById,

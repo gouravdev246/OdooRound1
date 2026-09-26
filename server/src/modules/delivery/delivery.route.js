@@ -1,41 +1,33 @@
-import Router from "express";
-import { getalldevilery } from "./delivery.controller.js";
-import prisma from "../../config/prisma.js";
+import { Router } from "express";
+import {
+  getalldevilery,
+  getDeliveryById,
+  createDelivery,
+  updateDelivery,
+  checkAvailability,
+  validateDelivery,
+  cancelDelivery,
+} from "./delivery.controller.js";
 
 const router = Router();
 
-// List & Details
-router.get("/delivery", getalldevilery);
+// List deliveries (support both /deliveries and /delivery)
 router.get("/deliveries", getalldevilery);
+router.get("/delivery", getalldevilery);
 
-// POST /api/deliveries
-router.post("/deliveries", async (req, res) => {
-  try {
-    const { customerName, scheduledDate, notes, items } = req.body;
-    const count = await prisma.delivery.count();
-    const deliveryNumber = `WH/OUT/${String(count + 1).padStart(4, "0")}`;
+// Create delivery
+router.post("/deliveries", createDelivery);
+router.post("/delivery", createDelivery);
 
-    let createdById = req.user?.id || req.body.createdById;
-    if (!createdById) {
-      const defaultUser = await prisma.user.findFirst();
-      if (defaultUser) createdById = defaultUser.id;
-    }
+// Details & Updates
+router.get("/deliveries/:id", getDeliveryById);
+router.get("/delivery/:id", getDeliveryById);
+router.put("/deliveries/:id", updateDelivery);
+router.put("/delivery/:id", updateDelivery);
 
-    const delivery = await prisma.delivery.create({
-      data: {
-        deliveryNumber,
-        customerName: customerName || "Customer Delivery",
-        scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
-        notes,
-        createdById: createdById || undefined,
-        status: "DRAFT",
-      },
-    });
-
-    return res.status(201).json({ success: true, message: "Delivery created", data: delivery });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
+// Workflow state actions
+router.post("/deliveries/:id/check-availability", checkAvailability);
+router.post("/deliveries/:id/validate", validateDelivery);
+router.patch("/deliveries/:id/cancel", cancelDelivery);
 
 export default router;

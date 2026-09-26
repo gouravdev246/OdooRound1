@@ -1,5 +1,5 @@
 import express from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "./db.js";
 
@@ -39,13 +39,19 @@ router.post("/signup", async (req, res) => {
             }
         });
 
+        const userData = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        };
+
         return res.status(201).json({
+            success: true,
             message: "User created successfully",
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
+            user: userData,
+            data: {
+                user: userData
             }
         });
 
@@ -110,14 +116,21 @@ router.post("/login", async (req, res) => {
             }
         );
 
+        const userData = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        };
+
         return res.json({
+            success: true,
             message: "Login successful",
             token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
+            user: userData,
+            data: {
+                token,
+                user: userData
             }
         });
 
