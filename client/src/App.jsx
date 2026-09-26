@@ -8,9 +8,11 @@ import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 
+import api from './services/api';
+
 // Protected Route Wrapper: Ensures user must log in first before seeing main app pages
 function ProtectedRoute({ children }) {
-  const isAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+  const isAuth = api.isAuthenticated();
   const location = useLocation();
 
   if (!isAuth) {

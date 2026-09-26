@@ -1,16 +1,90 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import api from '../services/api';
+import { Lock, Mail, AlertCircle, X, CheckCircle2 } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const [email, setEmail] = useState(location.state?.registeredEmail || '');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState(location.state?.successMsg || '');
+  
+  // Forgot Password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetStep, setResetStep] = useState(1); // 1 = enter email, 2 = enter OTP + new password
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.successMsg) {
+      setSuccessMsg(location.state.successMsg);
+    }
+    if (location.state?.registeredEmail) {
+      setEmail(location.state.registeredEmail);
+    }
+  }, [location.state]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    sessionStorage.setItem('isAuthenticated', 'true');
-    navigate('/dashboard');
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg('Please enter both email/login ID and password.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      await api.login({ email: email.trim(), password });
+      navigate('/dashboard');
+    } catch (err) {
+      setErrorMsg(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotMsg('');
+    try {
+      const res = await api.forgotPassword(forgotEmail);
+      setForgotMsg(res.devOtp ? `OTP sent! (Dev test code: ${res.devOtp})` : res.message || 'OTP dispatched to email.');
+      setResetStep(2);
+    } catch (err) {
+      setForgotError(err.message || 'Failed to dispatch OTP.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await api.resetPassword({ email: forgotEmail, otp, newPassword });
+      alert(res.message || 'Password reset successfully. Please log in.');
+      setShowForgotModal(false);
+      setResetStep(1);
+      setForgotEmail('');
+      setOtp('');
+      setNewPassword('');
+    } catch (err) {
+      setForgotError(err.message || 'Password reset failed.');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -92,12 +166,48 @@ export default function Login() {
           Please sign in to continue
         </p>
 
-        {/* Email Field */}
+        {successMsg && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.65rem 0.85rem',
+            backgroundColor: 'var(--emerald-light, #ecfdf5)',
+            color: 'var(--emerald-main, #059669)',
+            borderRadius: 'var(--radius-md, 8px)',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            textAlign: 'left'
+          }}>
+            <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.65rem 0.85rem',
+            backgroundColor: 'var(--rose-light, #fff1f2)',
+            color: 'var(--rose-main, #e11d48)',
+            borderRadius: 'var(--radius-md, 8px)',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            textAlign: 'left'
+          }}>
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Email or Login ID Field */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          marginTop: '2rem',
+          marginTop: (errorMsg || successMsg) ? '1rem' : '1.75rem',
           backgroundColor: '#ffffff',
           border: '1px solid rgba(209, 213, 219, 0.8)',
           height: '3rem',
@@ -110,8 +220,8 @@ export default function Login() {
             <path fillRule="evenodd" clipRule="evenodd" d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z" fill="#6B7280"/>
           </svg>
           <input 
-            type="email" 
-            placeholder="Email id" 
+            type="text" 
+            placeholder="Email address or Login ID" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{
@@ -167,58 +277,166 @@ export default function Login() {
           marginTop: '1.25rem',
           textAlign: 'left'
         }}>
-          <a 
-            href="#forgot" 
-            onClick={(e) => { e.preventDefault(); alert('Password reset requested.'); }}
+          <button 
+            type="button"
+            onClick={() => { setForgotError(''); setForgotMsg(''); setShowForgotModal(true); }}
             style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
               fontSize: '0.875rem',
-              color: '#6366f1'
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              fontWeight: 500
             }}
           >
             Forgot password?
-          </a>
+          </button>
         </div>
 
         {/* Submit Button */}
         <button 
           type="submit" 
+          disabled={loading}
           style={{
-            marginTop: '0.5rem',
+            marginTop: '1rem',
             width: '100%',
             height: '2.75rem',
             borderRadius: '9999px',
             color: '#ffffff',
-            backgroundColor: '#6366f1',
+            backgroundColor: 'var(--primary)',
             border: 'none',
             fontSize: '0.9rem',
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
             transition: 'opacity 0.2s',
-            boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)'
+            boxShadow: 'var(--shadow-indigo)'
           }}
         >
-          Login
+          {loading ? 'Signing in...' : 'Sign In'}
         </button>
 
         {/* Sign up link */}
         <p style={{
           color: '#6b7280',
           fontSize: '0.875rem',
-          marginTop: '0.75rem',
-          marginBottom: '2.75rem'
+          marginTop: '1rem',
+          marginBottom: '2.5rem'
         }}>
           Don’t have an account?{' '}
           <Link 
             to="/signup" 
             style={{
-              color: '#6366f1',
-              fontWeight: 500
+              color: 'var(--primary)',
+              fontWeight: 600
             }}
           >
             Sign up
           </Link>
         </p>
       </form>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          padding: '1rem'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '420px',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.75rem',
+            boxShadow: 'var(--shadow-lg)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Reset Password</h3>
+              <button onClick={() => setShowForgotModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {forgotError && (
+              <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--rose-light)', color: 'var(--rose-main)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', marginBottom: '0.85rem' }}>
+                {forgotError}
+              </div>
+            )}
+
+            {forgotMsg && (
+              <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--emerald-light)', color: 'var(--emerald-main)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', marginBottom: '0.85rem' }}>
+                {forgotMsg}
+              </div>
+            )}
+
+            {resetStep === 1 ? (
+              <form onSubmit={handleSendOtp}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Enter your registered email address to receive a password reset OTP code.
+                </p>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button type="button" onClick={() => setShowForgotModal(false)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={forgotLoading}>
+                    {forgotLoading ? 'Sending...' : 'Send OTP'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>6-Digit OTP Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>New Password</label>
+                    <input
+                      type="password"
+                      placeholder="Min 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', outline: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button type="button" onClick={() => setResetStep(1)} className="btn btn-secondary">Back</button>
+                    <button type="submit" className="btn btn-primary" disabled={forgotLoading}>
+                      {forgotLoading ? 'Saving...' : 'Set New Password'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
