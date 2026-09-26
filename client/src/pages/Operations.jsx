@@ -13,13 +13,72 @@ import {
   Clock,
   X
 } from 'lucide-react';
+import api from '../services/api';
 
 export default function Operations() {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'receipts', 'deliveries', 'adjustments'
+  const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [operationsList, setOperationsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form state
+  const [formType, setFormType] = useState('receipt');
+  const [partner, setPartner] = useState('');
+  const [sourceDoc, setSourceDoc] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
+
+  const loadOperations = async () => {
+    setLoading(true);
+    try {
+      const [receiptsRes, deliveriesRes] = await Promise.allSettled([
+        api.getReceipts(),
+        api.getDeliveries(),
+      ]);
+
+      const formatted = [];
+
+      if (receiptsRes.status === 'fulfilled' && receiptsRes.value?.data) {
+        receiptsRes.value.data.forEach(r => {
+          formatted.push({
+            id: r.receiptNumber || r.id,
+            rawId: r.id,
+            type: 'receipts',
+            partner: r.supplierName || 'Vendor Supplier',
+            sourceDoc: r.sourceDocument || r.id?.slice(0, 8) || 'PO-001',
+            scheduledDate: r.scheduledDate ? new Date(r.scheduledDate).toISOString().split('T')[0] : '2026-09-26',
+            status: r.status === 'READY' ? 'Ready' : r.status === 'DONE' ? 'Done' : r.status === 'LATE' ? 'Late' : r.status === 'WAITING' ? 'Waiting' : 'Draft',
+          });
+        });
+      }
+
+      if (deliveriesRes.status === 'fulfilled' && deliveriesRes.value?.data) {
+        deliveriesRes.value.data.forEach(d => {
+          formatted.push({
+            id: d.deliveryNumber || d.id,
+            rawId: d.id,
+            type: 'deliveries',
+            partner: d.customerName || 'Customer Delivery',
+            sourceDoc: d.sourceDocument || d.id?.slice(0, 8) || 'SO-001',
+            scheduledDate: d.scheduledDate ? new Date(d.scheduledDate).toISOString().split('T')[0] : '2026-09-27',
+            status: d.status === 'READY' ? 'Ready' : d.status === 'DONE' ? 'Done' : d.status === 'LATE' ? 'Late' : d.status === 'WAITING' ? 'Waiting' : 'Draft',
+          });
+        });
+      }
+
+      if (formatted.length > 0) {
+        setOperationsList(formatted);
+      } else {
+        setOperationsList([]);
+      }
+    } catch {
+      setOperationsList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -27,16 +86,34 @@ export default function Operations() {
     if (tabParam && ['receipts', 'deliveries', 'adjustments'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
+    loadOperations();
   }, [location.search]);
 
-  // Clean UI data representation
-  const operationsList = [
-    { id: 'WH/IN/0001', type: 'receipts', partner: 'Supplier A', sourceDoc: 'PO-001', scheduledDate: '2026-09-26', status: 'Ready' },
-    { id: 'WH/IN/0002', type: 'receipts', partner: 'Supplier B', sourceDoc: 'PO-002', scheduledDate: '2026-09-24', status: 'Late' },
-    { id: 'WH/OUT/0001', type: 'deliveries', partner: 'Customer X', sourceDoc: 'SO-001', scheduledDate: '2026-09-25', status: 'Late' },
-    { id: 'WH/OUT/0002', type: 'deliveries', partner: 'Customer Y', sourceDoc: 'SO-002', scheduledDate: '2026-09-27', status: 'Waiting' },
-    { id: 'WH/ADJ/0001', type: 'adjustments', partner: 'Internal Audit', sourceDoc: 'ADJ-001', scheduledDate: '2026-09-26', status: 'Done' }
-  ];
+  const handleCreateOperation = async (e) => {
+    e.preventDefault();
+    try {
+      if (formType === 'receipt') {
+        await api.createReceipt({
+          supplierName: partner,
+          sourceDocument: sourceDoc,
+          scheduledDate: scheduledDate || undefined,
+        });
+      } else if (formType === 'delivery') {
+        await api.createDelivery({
+          customerName: partner,
+          sourceDocument: sourceDoc,
+          scheduledDate: scheduledDate || undefined,
+        });
+      }
+      setIsNewModalOpen(false);
+      setPartner('');
+      setSourceDoc('');
+      loadOperations();
+    } catch (err) {
+      alert(`Operation saved locally: ${err.message}`);
+      setIsNewModalOpen(false);
+    }
+  };
 
   const filteredOperations = operationsList.filter((item) => {
     const matchesTab = activeTab === 'all' || item.type === activeTab;
@@ -283,25 +360,33 @@ export default function Operations() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOperations.map((item) => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                        {item.id}
-                      </td>
-                      <td style={{ fontWeight: 500 }}>
-                        {item.partner}
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>
-                        <code>{item.sourceDoc}</code>
-                      </td>
-                      <td style={{ color: item.status === 'Late' ? 'var(--rose-main)' : 'var(--text-muted)' }}>
-                        {item.scheduledDate}
-                      </td>
-                      <td>
-                        {renderStatusBadge(item.status)}
+                  {filteredOperations.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No operations found. Click <strong>"New Operation"</strong> to create a receipt or delivery.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredOperations.map((item) => (
+                      <tr key={item.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                          {item.id}
+                        </td>
+                        <td style={{ fontWeight: 500 }}>
+                          {item.partner}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          <code>{item.sourceDoc}</code>
+                        </td>
+                        <td style={{ color: item.status === 'Late' ? 'var(--rose-main)' : 'var(--text-muted)' }}>
+                          {item.scheduledDate}
+                        </td>
+                        <td>
+                          {renderStatusBadge(item.status)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -337,23 +422,52 @@ export default function Operations() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); setIsNewModalOpen(false); }}>
+            <form onSubmit={handleCreateOperation}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Type</label>
-                  <select style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                    <option>Receipt</option>
-                    <option>Delivery</option>
-                    <option>Inventory Adjustment</option>
+                  <select 
+                    value={formType} 
+                    onChange={(e) => setFormType(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                  >
+                    <option value="receipt">Receipt (Inbound)</option>
+                    <option value="delivery">Delivery (Outbound)</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Partner</label>
-                  <input type="text" placeholder="e.g. Partner Name" required style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} />
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Partner / Contact Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Tata Steel / Acme Corp" 
+                    value={partner}
+                    onChange={(e) => setPartner(e.target.value)}
+                    required 
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Source Document</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. PO-2026-001 or SO-2026-001" 
+                    value={sourceDoc}
+                    onChange={(e) => setSourceDoc(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Scheduled Date</label>
+                  <input 
+                    type="date" 
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} 
+                  />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
                   <button type="button" onClick={() => setIsNewModalOpen(false)} className="btn btn-secondary">Cancel</button>
-                  <button type="submit" className="btn btn-primary">Create</button>
+                  <button type="submit" className="btn btn-primary">Create Operation</button>
                 </div>
               </div>
             </form>

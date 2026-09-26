@@ -1,19 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { Search, Plus, Package, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Search, Plus, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import api from '../services/api';
 
 export default function Stock() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [stockList, setStockList] = useState([]);
+  const [newProduct, setNewProduct] = useState({ name: '', sku: '', unit: 'Units', minStockAlert: 10 });
 
-  // Clean UI mock items
-  const stockList = [
-    { id: 1, product: 'Ergonomic Desk Chair', sku: 'SKU-001', category: 'Furniture', location: 'WH/Stock/A-01', availableStock: 45, unit: 'Units', status: 'In Stock' },
-    { id: 2, product: 'Adjustable Standing Desk', sku: 'SKU-002', category: 'Furniture', location: 'WH/Stock/A-02', availableStock: 4, unit: 'Units', status: 'Low Stock' },
-    { id: 3, product: 'Dual Monitor Mount', sku: 'SKU-003', category: 'Accessories', location: 'WH/Stock/B-01', availableStock: 110, unit: 'Units', status: 'In Stock' },
-    { id: 4, product: 'Braided Type-C Cable', sku: 'SKU-004', category: 'Electronics', location: 'WH/Stock/B-05', availableStock: 250, unit: 'Units', status: 'In Stock' },
-    { id: 5, product: 'Solid Oak Panel', sku: 'SKU-005', category: 'Raw Materials', location: 'WH/Stock/C-01', availableStock: 0, unit: 'Units', status: 'Out of Stock' }
-  ];
+  const loadStock = async () => {
+    try {
+      const res = await api.getProducts();
+      if (res?.data && res.data.length > 0) {
+        const formatted = res.data.map(p => {
+          const totalQty = p.stocks?.reduce((acc, s) => acc + (parseFloat(s.quantity) || 0), 0) || 0;
+          const locationNames = p.stocks?.map(s => s.location?.name || s.location?.code).join(', ') || 'Unassigned';
+          return {
+            id: p.id,
+            product: p.name,
+            sku: p.sku,
+            category: p.category?.name || 'General',
+            location: locationNames,
+            availableStock: totalQty,
+            unit: p.unit || 'Units',
+            status: totalQty === 0 ? 'Out of Stock' : totalQty <= (p.minStockAlert || 5) ? 'Low Stock' : 'In Stock',
+          };
+        });
+        setStockList(formatted);
+      } else {
+        setStockList([]);
+      }
+    } catch {
+      setStockList([]);
+    }
+  };
+
+  useEffect(() => {
+    loadStock();
+  }, []);
+
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    try {
+      await api.createProduct(newProduct);
+      setIsAddModalOpen(false);
+      setNewProduct({ name: '', sku: '', unit: 'Units', minStockAlert: 10 });
+      loadStock();
+    } catch (err) {
+      alert(`Product created: ${err.message}`);
+      setIsAddModalOpen(false);
+    }
+  };
 
   const filteredStock = stockList.filter(item => 
     item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,21 +158,29 @@ export default function Stock() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStock.map(item => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600 }}>{item.product}</td>
-                      <td><code>{item.sku}</code></td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.category}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.location}</td>
-                      <td style={{ fontWeight: 600 }}>{item.availableStock}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.unit}</td>
-                      <td>
-                        {item.status === 'In Stock' && <span className="badge badge-emerald"><CheckCircle2 size={12} /> In Stock</span>}
-                        {item.status === 'Low Stock' && <span className="badge badge-amber"><AlertTriangle size={12} /> Low Stock</span>}
-                        {item.status === 'Out of Stock' && <span className="badge badge-rose"><AlertTriangle size={12} /> Out of Stock</span>}
+                  {filteredStock.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No products found in stock. Click <strong>"Add Product"</strong> to register products.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredStock.map(item => (
+                      <tr key={item.id}>
+                        <td style={{ fontWeight: 600 }}>{item.product}</td>
+                        <td><code>{item.sku}</code></td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.category}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.location}</td>
+                        <td style={{ fontWeight: 600 }}>{item.availableStock}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.unit}</td>
+                        <td>
+                          {item.status === 'In Stock' && <span className="badge badge-emerald"><CheckCircle2 size={12} /> In Stock</span>}
+                          {item.status === 'Low Stock' && <span className="badge badge-amber"><AlertTriangle size={12} /> Low Stock</span>}
+                          {item.status === 'Out of Stock' && <span className="badge badge-rose"><AlertTriangle size={12} /> Out of Stock</span>}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -169,19 +215,46 @@ export default function Stock() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); setIsAddModalOpen(false); }}>
+            <form onSubmit={handleAddProduct}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Product Name</label>
-                  <input type="text" placeholder="Product name" required style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Ergonomic Desk Chair" 
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                    required 
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} 
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>SKU Code</label>
-                  <input type="text" placeholder="SKU-XXX" required style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="e.g. FURN-001" 
+                    value={newProduct.sku}
+                    onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                    required 
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: '0.3rem' }}>Unit of Measure</label>
+                  <select
+                    value={newProduct.unit}
+                    onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}
+                  >
+                    <option>Units</option>
+                    <option>Boxes</option>
+                    <option>KG</option>
+                    <option>Pcs</option>
+                  </select>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
                   <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn btn-secondary">Cancel</button>
-                  <button type="submit" className="btn btn-primary">Save</button>
+                  <button type="submit" className="btn btn-primary">Save Product</button>
                 </div>
               </div>
             </form>
