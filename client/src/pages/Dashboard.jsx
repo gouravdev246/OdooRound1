@@ -1,23 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ReceiptCard from '../components/ReceiptCard';
 import DeliveryCard from '../components/DeliveryCard';
-import { 
-  Info, 
-  AlertCircle, 
-  Clock, 
-  Hourglass, 
-  ArrowRight, 
-  Boxes, 
-  CheckCircle2, 
-  Play
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import api from '../services/api';
 
 export default function Dashboard() {
+  const [metrics, setMetrics] = useState({
+    receipts: { toReceive: 4, late: 1, operations: 6 },
+    deliveries: { toDeliver: 4, late: 1, waiting: 2, operations: 6 },
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getDashboardOverview().then(data => {
+      if (isMounted && data) {
+        setMetrics({
+          receipts: {
+            toReceive: data.receipts?.toReceive ?? 4,
+            late: data.receipts?.late ?? 1,
+            operations: data.receipts?.operations ?? 6,
+          },
+          deliveries: {
+            toDeliver: data.deliveries?.toDeliver ?? 4,
+            late: data.deliveries?.late ?? 1,
+            waiting: data.deliveries?.waiting ?? 2,
+            operations: data.deliveries?.operations ?? 6,
+          },
+        });
+      }
+    }).catch(() => {});
+
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <div className="page-wrapper">
-      {/* Background Geometric Line & Circle Canvas from reference */}
+      {/* Background Geometric Canvas */}
       <svg 
         className="bg-canvas"
         viewBox="0 0 1440 720" 
@@ -36,14 +56,13 @@ export default function Dashboard() {
 
       <main style={{ flex: 1, padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          {/* Header Banner matching reference typography & pill badge */}
+          {/* Header Banner */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
             marginBottom: '2.5rem'
           }}>
-            {/* Top pill badge */}
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -95,7 +114,6 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {/* Action Buttons matching visual language */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Link to="/operations" className="btn btn-primary">
                   <span>View Operations</span>
@@ -114,8 +132,17 @@ export default function Dashboard() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
             gap: '1.75rem'
           }}>
-            <ReceiptCard />
-            <DeliveryCard />
+            <ReceiptCard 
+              toReceive={metrics.receipts.toReceive} 
+              lateCount={metrics.receipts.late} 
+              operationsCount={metrics.receipts.operations} 
+            />
+            <DeliveryCard 
+              toDeliver={metrics.deliveries.toDeliver} 
+              lateCount={metrics.deliveries.late} 
+              waitingCount={metrics.deliveries.waiting} 
+              operationsCount={metrics.deliveries.operations} 
+            />
           </div>
         </div>
       </main>

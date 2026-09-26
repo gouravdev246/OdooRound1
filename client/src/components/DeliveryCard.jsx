@@ -2,7 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, AlertCircle, Hourglass, Clock, ArrowRight as ArrowIcon } from 'lucide-react';
 
-export default function DeliveryCard() {
+export default function DeliveryCard({
+  toDeliver = 4,
+  lateCount = 1,
+  waitingCount = 2,
+  operationsCount = 6
+}) {
   return (
     <div className="stock-card" style={{
       padding: '1.75rem',
@@ -56,7 +61,7 @@ export default function DeliveryCard() {
           </span>
         </div>
 
-        {/* Primary Metric: 4 to Deliver */}
+        {/* Primary Metric */}
         <div style={{
           padding: '1.25rem 1.5rem',
           backgroundColor: '#F8FAFC',
@@ -75,7 +80,7 @@ export default function DeliveryCard() {
               lineHeight: 1.1,
               letterSpacing: '-0.02em'
             }}>
-              4
+              {toDeliver}
             </div>
             <div style={{
               fontSize: '0.875rem',
@@ -95,7 +100,7 @@ export default function DeliveryCard() {
           </Link>
         </div>
 
-        {/* Status Indicators: 1 Late, 2 Waiting, 6 Operations */}
+        {/* Status Indicators */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
@@ -119,7 +124,7 @@ export default function DeliveryCard() {
                 color: 'var(--rose-main)',
                 lineHeight: 1.2
               }}>
-                1 Late
+                {lateCount} Late
               </div>
               <div style={{
                 fontSize: '0.68rem',
@@ -147,7 +152,7 @@ export default function DeliveryCard() {
                 color: 'var(--amber-main)',
                 lineHeight: 1.2
               }}>
-                2 Waiting
+                {waitingCount} Waiting
               </div>
               <div style={{
                 fontSize: '0.68rem',
@@ -175,7 +180,7 @@ export default function DeliveryCard() {
                 color: 'var(--text-main)',
                 lineHeight: 1.2
               }}>
-                6 Operations
+                {operationsCount} Operations
               </div>
               <div style={{
                 fontSize: '0.68rem',

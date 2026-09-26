@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getAllReceipts,
   getReceiptById,
   createReceipt,
   updateReceipt,
@@ -10,6 +11,7 @@ import {
 
 const router = Router();
 
+router.get("/receipts", getAllReceipts);
 router.get("/receipts/:id", getReceiptById);
 router.post("/receipts", createReceipt);
 router.put("/receipts/:id", updateReceipt);
