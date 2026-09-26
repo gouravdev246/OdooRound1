@@ -81,22 +81,14 @@ export const getReceiptById = async (req, res) => {
       },
     });
 
-    if (!receipt) {
-      return res.status(404).json({ success: false, message: "Receipt not found" });
-    }
 
-    return res.status(200).json({ success: true, data: receipt });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 // POST /api/receipts
 export const createReceipt = async (req, res) => {
   try {
-    const { supplierName, scheduledDate, notes, items } = req.body;
+    const { supplierName, scheduledDate, notes, items, locationId } = req.body;
 
-    // Use logged in user if available, or fallback to createdById from body or default user
+    // 1. Determine creator: use authenticated user or fallback to createdById / default user
     let createdById = req.user?.id || req.body.createdById;
     if (!createdById) {
       let defaultUser = await prisma.user.findFirst();
@@ -117,7 +109,7 @@ export const createReceipt = async (req, res) => {
       createdById = defaultUser?.id;
     }
 
-    // Auto-generate WH/IN/0001 format if receiptNumber is not provided
+    // 2. Auto-generate WH/IN/0001 sequence if receiptNumber is not provided
     const receiptNumber = req.body.receiptNumber?.trim() || (await generateReceiptNumber());
 
     // Check duplicate receipt number
@@ -129,15 +121,25 @@ export const createReceipt = async (req, res) => {
       });
     }
 
-    // Prepare line items
+    // 3. Fallback receiving location for items that don't specify a locationId
+    let defaultLocationId = locationId;
+    if (!defaultLocationId && Array.isArray(items) && items.some((i) => !i.locationId)) {
+      const receivingLoc =
+        (await prisma.location.findFirst({ where: { type: "RECEIVING" } })) ||
+        (await prisma.location.findFirst());
+      defaultLocationId = receivingLoc?.id;
+    }
+
+    // 4. Prepare line items
     const lineItems = Array.isArray(items)
       ? items.map((item) => ({
           productId: item.productId,
-          locationId: item.locationId,
+          locationId: item.locationId || defaultLocationId,
           quantity: Number(item.quantity || 0),
         }))
       : [];
 
+    // 5. Create receipt in DRAFT status
     const receipt = await prisma.receipt.create({
       data: {
         receiptNumber,
@@ -170,6 +172,43 @@ export const createReceipt = async (req, res) => {
       message: "Receipt created in Draft stage",
       data: receipt,
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/receipts/:id
+export const getReceiptById = async (req, res) => {
+  try {
+    const receipt = await prisma.receipt.findUnique({
+      where: { id: req.params.id },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true, unit: true },
+            },
+            location: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                warehouse: { select: { id: true, name: true, code: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!receipt) {
+      return res.status(404).json({ success: false, message: "Receipt not found" });
+    }
+
+    return res.status(200).json({ success: true, data: receipt });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

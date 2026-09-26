@@ -2,7 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
@@ -26,6 +26,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "prisma": "^7.10.0"
+    "prisma": "^7.10.0",
+    "tsx": "^4.20.5"
   }
 }

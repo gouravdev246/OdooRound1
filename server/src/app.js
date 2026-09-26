@@ -10,9 +10,6 @@ import productRoutes from "./modules/product/product.routes.js";
 import ledgerRoutes from "./modules/ledger/ledger.routes.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 app.get("/", (req, res) => {
   return res.send({ message: "StockSense Server alive" });

@@ -4,6 +4,7 @@ import prisma from "../../config/prisma.js";
 
 const router = Router();
 
+// List & Details
 router.get("/delivery", getalldevilery);
 router.get("/deliveries", getalldevilery);
 
