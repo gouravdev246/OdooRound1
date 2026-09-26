@@ -15,7 +15,7 @@ export default function Stock() {
       if (res?.data && res.data.length > 0) {
         const formatted = res.data.map(p => {
           const totalQty = p.stocks?.reduce((acc, s) => acc + (parseFloat(s.quantity) || 0), 0) || 0;
-          const locationNames = p.stocks?.map(s => s.location?.name || s.location?.code).join(', ') || 'WH/Stock/A-01';
+          const locationNames = p.stocks?.map(s => s.location?.name || s.location?.code).join(', ') || 'Unassigned';
           return {
             id: p.id,
             product: p.name,
@@ -29,22 +29,10 @@ export default function Stock() {
         });
         setStockList(formatted);
       } else {
-        setStockList([
-          { id: 1, product: 'Ergonomic Desk Chair', sku: 'SKU-001', category: 'Furniture', location: 'WH/Stock/A-01', availableStock: 45, unit: 'Units', status: 'In Stock' },
-          { id: 2, product: 'Adjustable Standing Desk', sku: 'SKU-002', category: 'Furniture', location: 'WH/Stock/A-02', availableStock: 4, unit: 'Units', status: 'Low Stock' },
-          { id: 3, product: 'Dual Monitor Mount', sku: 'SKU-003', category: 'Accessories', location: 'WH/Stock/B-01', availableStock: 110, unit: 'Units', status: 'In Stock' },
-          { id: 4, product: 'Braided Type-C Cable', sku: 'SKU-004', category: 'Electronics', location: 'WH/Stock/B-05', availableStock: 250, unit: 'Units', status: 'In Stock' },
-          { id: 5, product: 'Solid Oak Panel', sku: 'SKU-005', category: 'Raw Materials', location: 'WH/Stock/C-01', availableStock: 0, unit: 'Units', status: 'Out of Stock' }
-        ]);
+        setStockList([]);
       }
     } catch {
-      setStockList([
-        { id: 1, product: 'Ergonomic Desk Chair', sku: 'SKU-001', category: 'Furniture', location: 'WH/Stock/A-01', availableStock: 45, unit: 'Units', status: 'In Stock' },
-        { id: 2, product: 'Adjustable Standing Desk', sku: 'SKU-002', category: 'Furniture', location: 'WH/Stock/A-02', availableStock: 4, unit: 'Units', status: 'Low Stock' },
-        { id: 3, product: 'Dual Monitor Mount', sku: 'SKU-003', category: 'Accessories', location: 'WH/Stock/B-01', availableStock: 110, unit: 'Units', status: 'In Stock' },
-        { id: 4, product: 'Braided Type-C Cable', sku: 'SKU-004', category: 'Electronics', location: 'WH/Stock/B-05', availableStock: 250, unit: 'Units', status: 'In Stock' },
-        { id: 5, product: 'Solid Oak Panel', sku: 'SKU-005', category: 'Raw Materials', location: 'WH/Stock/C-01', availableStock: 0, unit: 'Units', status: 'Out of Stock' }
-      ]);
+      setStockList([]);
     }
   };
 
@@ -170,21 +158,29 @@ export default function Stock() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStock.map(item => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600 }}>{item.product}</td>
-                      <td><code>{item.sku}</code></td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.category}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.location}</td>
-                      <td style={{ fontWeight: 600 }}>{item.availableStock}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{item.unit}</td>
-                      <td>
-                        {item.status === 'In Stock' && <span className="badge badge-emerald"><CheckCircle2 size={12} /> In Stock</span>}
-                        {item.status === 'Low Stock' && <span className="badge badge-amber"><AlertTriangle size={12} /> Low Stock</span>}
-                        {item.status === 'Out of Stock' && <span className="badge badge-rose"><AlertTriangle size={12} /> Out of Stock</span>}
+                  {filteredStock.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No products found in stock. Click <strong>"Add Product"</strong> to register products.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredStock.map(item => (
+                      <tr key={item.id}>
+                        <td style={{ fontWeight: 600 }}>{item.product}</td>
+                        <td><code>{item.sku}</code></td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.category}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.location}</td>
+                        <td style={{ fontWeight: 600 }}>{item.availableStock}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.unit}</td>
+                        <td>
+                          {item.status === 'In Stock' && <span className="badge badge-emerald"><CheckCircle2 size={12} /> In Stock</span>}
+                          {item.status === 'Low Stock' && <span className="badge badge-amber"><AlertTriangle size={12} /> Low Stock</span>}
+                          {item.status === 'Out of Stock' && <span className="badge badge-rose"><AlertTriangle size={12} /> Out of Stock</span>}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

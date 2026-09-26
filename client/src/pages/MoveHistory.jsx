@@ -3,15 +3,9 @@ import Navbar from '../components/Navbar';
 import { Search, ArrowDownLeft, ArrowUpRight, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 
-const DEFAULT_MOVES = [
-  { id: 'M-001', date: '2026-09-26 10:00', product: 'Ergonomic Desk Chair', operation: 'Receipt', quantity: '+10', from: 'Vendor A', to: 'WH/Stock/A-01', status: 'Done' },
-  { id: 'M-002', date: '2026-09-26 09:30', product: 'Dual Monitor Mount', operation: 'Delivery', quantity: '-5', from: 'WH/Stock/B-01', to: 'Customer X', status: 'Done' },
-  { id: 'M-003', date: '2026-09-25 15:00', product: 'Braided Type-C Cable', operation: 'Internal', quantity: '20', from: 'WH/Input', to: 'WH/Stock/B-05', status: 'Done' }
-];
-
 export default function MoveHistory() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [moves, setMoves] = useState(DEFAULT_MOVES);
+  const [moves, setMoves] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchLedger = async () => {
@@ -33,9 +27,11 @@ export default function MoveHistory() {
           };
         });
         setMoves(formatted);
+      } else {
+        setMoves([]);
       }
     } catch {
-      // Fallback kept in state
+      setMoves([]);
     } finally {
       setLoading(false);
     }
@@ -146,8 +142,8 @@ export default function MoveHistory() {
                 <tbody>
                   {filteredMoves.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                        No movement history found matching your search.
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No movement history found. Movements are logged automatically when receipts and deliveries are validated.
                       </td>
                     </tr>
                   ) : (

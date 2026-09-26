@@ -8,8 +8,8 @@ import api from '../services/api';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState({
-    receipts: { toReceive: 4, late: 1, operations: 6 },
-    deliveries: { toDeliver: 4, late: 1, waiting: 2, operations: 6 },
+    receipts: { toReceive: 0, late: 0, operations: 0 },
+    deliveries: { toDeliver: 0, late: 0, waiting: 0, operations: 0 },
   });
 
   useEffect(() => {
@@ -18,15 +18,15 @@ export default function Dashboard() {
       if (isMounted && data) {
         setMetrics({
           receipts: {
-            toReceive: data.receipts?.toReceive ?? 4,
-            late: data.receipts?.late ?? 1,
-            operations: data.receipts?.operations ?? 6,
+            toReceive: data.receipts?.toReceive ?? 0,
+            late: data.receipts?.late ?? 0,
+            operations: data.receipts?.operations ?? 0,
           },
           deliveries: {
-            toDeliver: data.deliveries?.toDeliver ?? 4,
-            late: data.deliveries?.late ?? 1,
-            waiting: data.deliveries?.waiting ?? 2,
-            operations: data.deliveries?.operations ?? 6,
+            toDeliver: data.deliveries?.toDeliver ?? 0,
+            late: data.deliveries?.late ?? 0,
+            waiting: data.deliveries?.waiting ?? 0,
+            operations: data.deliveries?.operations ?? 0,
           },
         });
       }

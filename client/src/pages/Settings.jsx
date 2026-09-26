@@ -3,17 +3,6 @@ import Navbar from '../components/Navbar';
 import { Building2, MapPin, Plus, CheckCircle2, X, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 
-const DEFAULT_WAREHOUSES = [
-  { id: '1', name: 'Main Warehouse', code: 'WH/Central', address: 'Plot 42, Central Zone', isActive: true },
-  { id: '2', name: 'North Depot', code: 'WH/North', address: 'Industrial Area B', isActive: true }
-];
-
-const DEFAULT_LOCATIONS = [
-  { id: '1', name: 'Stock Rack A-01', parent: { code: 'WH/Central/Stock' }, type: 'RACK', code: 'LOC-001', warehouse: { name: 'Main Warehouse' } },
-  { id: '2', name: 'Receiving Dock', parent: { code: 'WH/Central/Input' }, type: 'RECEIVING', code: 'LOC-002', warehouse: { name: 'Main Warehouse' } },
-  { id: '3', name: 'Dispatch Bay 1', parent: { code: 'WH/Central/Output' }, type: 'SHIPPING', code: 'LOC-003', warehouse: { name: 'Main Warehouse' } }
-];
-
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('warehouses');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,8 +10,8 @@ export default function Settings() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [warehouses, setWarehouses] = useState(DEFAULT_WAREHOUSES);
-  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
+  const [warehouses, setWarehouses] = useState([]);
+  const [locations, setLocations] = useState([]);
 
   // Warehouse Form State
   const [whName, setWhName] = useState('');
@@ -258,18 +247,26 @@ export default function Settings() {
                   </tr>
                 </thead>
                 <tbody>
-                  {warehouses.map(wh => (
-                    <tr key={wh.id}>
-                      <td style={{ fontWeight: 600 }}>{wh.name}</td>
-                      <td><code>{wh.code}</code></td>
-                      <td style={{ color: 'var(--text-muted)' }}>{wh.address || '—'}</td>
-                      <td>
-                        <span className={`badge ${wh.isActive !== false ? 'badge-emerald' : 'badge-neutral'}`}>
-                          <CheckCircle2 size={12} /> {wh.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
+                  {warehouses.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No warehouses configured. Click <strong>"Add Warehouse"</strong> to create one.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    warehouses.map(wh => (
+                      <tr key={wh.id}>
+                        <td style={{ fontWeight: 600 }}>{wh.name}</td>
+                        <td><code>{wh.code}</code></td>
+                        <td style={{ color: 'var(--text-muted)' }}>{wh.address || '—'}</td>
+                        <td>
+                          <span className={`badge ${wh.isActive !== false ? 'badge-emerald' : 'badge-neutral'}`}>
+                            <CheckCircle2 size={12} /> {wh.isActive !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -286,15 +283,23 @@ export default function Settings() {
                   </tr>
                 </thead>
                 <tbody>
-                  {locations.map(loc => (
-                    <tr key={loc.id}>
-                      <td style={{ fontWeight: 600 }}>{loc.name}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{loc.warehouse?.name || 'Main Warehouse'}</td>
-                      <td style={{ color: 'var(--text-muted)' }}><code>{loc.parent?.code || loc.parent?.name || `${loc.code}`}</code></td>
-                      <td><span className="badge badge-neutral">{loc.type}</span></td>
-                      <td style={{ color: 'var(--text-muted)' }}><code>{loc.code}</code></td>
+                  {locations.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No storage locations configured. Click <strong>"Add Location"</strong> to create one.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    locations.map(loc => (
+                      <tr key={loc.id}>
+                        <td style={{ fontWeight: 600 }}>{loc.name}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{loc.warehouse?.name || 'Main Warehouse'}</td>
+                        <td style={{ color: 'var(--text-muted)' }}><code>{loc.parent?.code || loc.parent?.name || `${loc.code}`}</code></td>
+                        <td><span className="badge badge-neutral">{loc.type}</span></td>
+                        <td style={{ color: 'var(--text-muted)' }}><code>{loc.code}</code></td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

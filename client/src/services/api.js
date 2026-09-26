@@ -37,14 +37,14 @@ export const api = {
       const deliveries = deliveriesRes.status === 'fulfilled' && deliveriesRes.value?.data ? deliveriesRes.value.data : [];
       const stocks = stocksRes.status === 'fulfilled' && stocksRes.value?.data ? stocksRes.value.data : [];
 
-      const toReceiveCount = receipts.filter(r => r.status === 'READY' || r.status === 'DRAFT' || r.status === 'WAITING').length || 4;
-      const lateReceiptsCount = receipts.filter(r => r.status === 'LATE').length || 1;
-      const totalReceiptsOps = receipts.length || 6;
+      const toReceiveCount = receipts.filter(r => r.status === 'READY' || r.status === 'DRAFT' || r.status === 'WAITING').length;
+      const lateReceiptsCount = receipts.filter(r => r.status === 'LATE').length;
+      const totalReceiptsOps = receipts.length;
 
-      const toDeliverCount = deliveries.filter(d => d.status === 'READY' || d.status === 'DRAFT').length || 4;
-      const lateDeliveriesCount = deliveries.filter(d => d.status === 'LATE').length || 1;
-      const waitingDeliveriesCount = deliveries.filter(d => d.status === 'WAITING').length || 2;
-      const totalDeliveriesOps = deliveries.length || 6;
+      const toDeliverCount = deliveries.filter(d => d.status === 'READY' || d.status === 'DRAFT').length;
+      const lateDeliveriesCount = deliveries.filter(d => d.status === 'LATE').length;
+      const waitingDeliveriesCount = deliveries.filter(d => d.status === 'WAITING').length;
+      const totalDeliveriesOps = deliveries.length;
 
       return {
         receipts: {
@@ -60,13 +60,13 @@ export const api = {
           operations: totalDeliveriesOps,
           list: deliveries,
         },
-        totalStocks: stocks.length || 5,
+        totalStocks: stocks.length,
       };
     } catch {
       return {
-        receipts: { toReceive: 4, late: 1, operations: 6, list: [] },
-        deliveries: { toDeliver: 4, late: 1, waiting: 2, operations: 6, list: [] },
-        totalStocks: 5,
+        receipts: { toReceive: 0, late: 0, operations: 0, list: [] },
+        deliveries: { toDeliver: 0, late: 0, waiting: 0, operations: 0, list: [] },
+        totalStocks: 0,
       };
     }
   },

@@ -71,22 +71,10 @@ export default function Operations() {
       if (formatted.length > 0) {
         setOperationsList(formatted);
       } else {
-        // Fallback initial items
-        setOperationsList([
-          { id: 'WH/IN/0001', type: 'receipts', partner: 'Azure Interior Supplies', sourceDoc: 'PO-001', scheduledDate: '2026-09-26', status: 'Ready' },
-          { id: 'WH/IN/0002', type: 'receipts', partner: 'Steelcase Solutions', sourceDoc: 'PO-002', scheduledDate: '2026-09-24', status: 'Late' },
-          { id: 'WH/OUT/0001', type: 'deliveries', partner: 'Deco Addict Inc.', sourceDoc: 'SO-001', scheduledDate: '2026-09-25', status: 'Late' },
-          { id: 'WH/OUT/0002', type: 'deliveries', partner: 'Gemini Workspace', sourceDoc: 'SO-002', scheduledDate: '2026-09-27', status: 'Waiting' },
-          { id: 'WH/ADJ/0001', type: 'adjustments', partner: 'Warehouse Audit', sourceDoc: 'ADJ-001', scheduledDate: '2026-09-26', status: 'Done' }
-        ]);
+        setOperationsList([]);
       }
     } catch {
-      setOperationsList([
-        { id: 'WH/IN/0001', type: 'receipts', partner: 'Supplier A', sourceDoc: 'PO-001', scheduledDate: '2026-09-26', status: 'Ready' },
-        { id: 'WH/IN/0002', type: 'receipts', partner: 'Supplier B', sourceDoc: 'PO-002', scheduledDate: '2026-09-24', status: 'Late' },
-        { id: 'WH/OUT/0001', type: 'deliveries', partner: 'Customer X', sourceDoc: 'SO-001', scheduledDate: '2026-09-25', status: 'Late' },
-        { id: 'WH/OUT/0002', type: 'deliveries', partner: 'Customer Y', sourceDoc: 'SO-002', scheduledDate: '2026-09-27', status: 'Waiting' },
-      ]);
+      setOperationsList([]);
     } finally {
       setLoading(false);
     }
@@ -372,25 +360,33 @@ export default function Operations() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOperations.map((item) => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                        {item.id}
-                      </td>
-                      <td style={{ fontWeight: 500 }}>
-                        {item.partner}
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>
-                        <code>{item.sourceDoc}</code>
-                      </td>
-                      <td style={{ color: item.status === 'Late' ? 'var(--rose-main)' : 'var(--text-muted)' }}>
-                        {item.scheduledDate}
-                      </td>
-                      <td>
-                        {renderStatusBadge(item.status)}
+                  {filteredOperations.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        No operations found. Click <strong>"New Operation"</strong> to create a receipt or delivery.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredOperations.map((item) => (
+                      <tr key={item.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                          {item.id}
+                        </td>
+                        <td style={{ fontWeight: 500 }}>
+                          {item.partner}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          <code>{item.sourceDoc}</code>
+                        </td>
+                        <td style={{ color: item.status === 'Late' ? 'var(--rose-main)' : 'var(--text-muted)' }}>
+                          {item.scheduledDate}
+                        </td>
+                        <td>
+                          {renderStatusBadge(item.status)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
