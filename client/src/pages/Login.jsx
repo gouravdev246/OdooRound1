@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import api from '../services/api';
 import { Lock, Mail, AlertCircle, X, CheckCircle2 } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState(location.state?.registeredEmail || '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState(location.state?.successMsg || '');
   
   // Forgot Password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -20,14 +24,26 @@ export default function Login() {
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (location.state?.successMsg) {
+      setSuccessMsg(location.state.successMsg);
+    }
+    if (location.state?.registeredEmail) {
+      setEmail(location.state.registeredEmail);
+    }
+  }, [location.state]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg('Please enter both email/login ID and password.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
     try {
-      await api.login({ email, password });
+      await api.login({ email: email.trim(), password });
       navigate('/dashboard');
     } catch (err) {
       setErrorMsg(err.message || 'Login failed. Please check your credentials.');
@@ -150,13 +166,31 @@ export default function Login() {
           Please sign in to continue
         </p>
 
+        {successMsg && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.65rem 0.85rem',
+            backgroundColor: 'var(--emerald-light, #ecfdf5)',
+            color: 'var(--emerald-main, #059669)',
+            borderRadius: 'var(--radius-md, 8px)',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            textAlign: 'left'
+          }}>
+            <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         {errorMsg && (
           <div style={{
             marginTop: '1rem',
             padding: '0.65rem 0.85rem',
-            backgroundColor: 'var(--rose-light)',
-            color: 'var(--rose-main)',
-            borderRadius: 'var(--radius-md)',
+            backgroundColor: 'var(--rose-light, #fff1f2)',
+            color: 'var(--rose-main, #e11d48)',
+            borderRadius: 'var(--radius-md, 8px)',
             fontSize: '0.8rem',
             display: 'flex',
             alignItems: 'center',
@@ -168,12 +202,12 @@ export default function Login() {
           </div>
         )}
 
-        {/* Email Field */}
+        {/* Email or Login ID Field */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           width: '100%',
-          marginTop: errorMsg ? '1rem' : '1.75rem',
+          marginTop: (errorMsg || successMsg) ? '1rem' : '1.75rem',
           backgroundColor: '#ffffff',
           border: '1px solid rgba(209, 213, 219, 0.8)',
           height: '3rem',
@@ -186,8 +220,8 @@ export default function Login() {
             <path fillRule="evenodd" clipRule="evenodd" d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z" fill="#6B7280"/>
           </svg>
           <input 
-            type="email" 
-            placeholder="Email address" 
+            type="text" 
+            placeholder="Email address or Login ID" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{

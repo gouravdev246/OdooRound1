@@ -15,6 +15,10 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (!loginId.trim() || !email.trim() || !password.trim()) {
+      setErrorMsg('Please fill in all required fields.');
+      return;
+    }
     if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match. Please verify your entries.');
       return;
@@ -27,13 +31,19 @@ export default function Signup() {
     setLoading(true);
     setErrorMsg('');
     try {
-      await api.signup({
+      const res = await api.signup({
         name: loginId.trim(),
         email: email.trim(),
         password,
         role: 'WAREHOUSE_STAFF'
       });
-      navigate('/dashboard');
+      // Redirect to Login page after successful signup
+      navigate('/login', {
+        state: {
+          successMsg: res.message || 'Account created successfully! Please sign in.',
+          registeredEmail: email.trim()
+        }
+      });
     } catch (err) {
       setErrorMsg(err.message || 'Signup failed. Please try again.');
     } finally {

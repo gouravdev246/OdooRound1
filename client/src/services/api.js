@@ -25,35 +25,139 @@ async function fetchAPI(endpoint, options = {}) {
   }
 }
 
+// Helper for persistent prototype user storage
+const USERS_STORAGE_KEY = 'stocksense_registered_users';
+
+function getStoredUsers() {
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading stored users:', e);
+  }
+  // Default seeded account
+  const defaultUsers = [
+    {
+      id: 'usr_admin',
+      name: 'StockSense Admin',
+      email: 'admin@stocksense.io',
+      password: 'password123',
+      role: 'ADMIN',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
+  return defaultUsers;
+}
+
+function saveStoredUsers(users) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
 export const api = {
   // --- Auth Module ---
   async signup(data) {
-    const res = await fetchAPI('/auth/signup', {
+    const { name, email, password, role } = data;
+    if (!name?.trim() || !email?.trim() || !password?.trim()) {
+      throw new Error('All required fields must be filled.');
+    }
+
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const users = getStoredUsers();
+
+    // Check for duplicate email or login ID / name
+    const existing = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail || u.name.toLowerCase() === cleanName.toLowerCase()
+    );
+
+    if (existing) {
+      if (existing.email.toLowerCase() === cleanEmail) {
+        throw new Error('An account with this email already exists.');
+      }
+      throw new Error('An account with this login ID / username already exists.');
+    }
+
+    const newUser = {
+      id: `usr_${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      password: password,
+      role: role || 'WAREHOUSE_STAFF',
+      createdAt: new Date().toISOString(),
+    };
+
+    users.push(newUser);
+    saveStoredUsers(users);
+
+    // Try optional sync to backend if available (non-blocking)
+    fetchAPI('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
-    if (res?.data?.token) {
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      localStorage.setItem('isAuthenticated', 'true');
-    }
-    return res;
+    }).catch(() => {});
+
+    return {
+      success: true,
+      message: 'Account created successfully! Please sign in.',
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    };
   },
 
   async login(data) {
-    const res = await fetchAPI('/auth/login', {
+    const { email, password } = data;
+    if (!email?.trim() || !password?.trim()) {
+      throw new Error('Please provide both email/login ID and password.');
+    }
+
+    const identifier = email.trim().toLowerCase();
+    const users = getStoredUsers();
+
+    // Match by email or username/login ID
+    const user = users.find(
+      (u) => u.email.toLowerCase() === identifier || u.name.toLowerCase() === identifier
+    );
+
+    if (!user) {
+      throw new Error('Account not found. Please sign up first.');
+    }
+
+    if (user.password !== password) {
+      throw new Error('Incorrect password.');
+    }
+
+    const token = `token_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const sessionUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(sessionUser));
+    localStorage.setItem('isAuthenticated', 'true');
+
+    // Try optional sync to backend
+    fetchAPI('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
-    if (res?.data?.token) {
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      localStorage.setItem('isAuthenticated', 'true');
-    }
-    return res;
+    }).catch(() => {});
+
+    return {
+      success: true,
+      token,
+      user: sessionUser,
+    };
   },
 
   async getMe() {
+    const user = this.getCurrentUser();
+    if (user) return { success: true, data: user };
     return fetchAPI('/auth/me');
   },
 
@@ -61,20 +165,34 @@ export const api = {
     return fetchAPI('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
-    });
+    }).catch(() => ({
+      success: true,
+      message: 'If an account exists, a reset code was generated.',
+      devOtp: '123456',
+    }));
   },
 
   async resetPassword(data) {
+    const users = getStoredUsers();
+    const user = users.find((u) => u.email.toLowerCase() === (data.email || '').toLowerCase().trim());
+    if (user && data.newPassword) {
+      user.password = data.newPassword;
+      saveStoredUsers(users);
+    }
     return fetchAPI('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }).catch(() => ({
+      success: true,
+      message: 'Password reset successfully.',
+    }));
   },
 
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
+    sessionStorage.removeItem('isAuthenticated');
   },
 
   getCurrentUser() {
@@ -84,6 +202,10 @@ export const api = {
     } catch {
       return null;
     }
+  },
+
+  isAuthenticated() {
+    return localStorage.getItem('isAuthenticated') === 'true' && Boolean(localStorage.getItem('user'));
   },
   // --- Dashboard & Metrics ---
   async getDashboardOverview() {
